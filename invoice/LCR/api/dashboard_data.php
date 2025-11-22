@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require "../../auth/db.php";
+require "../../auth/db.php";   // CAMINHO CORRETO!!!!!!
 
 $client = $_GET["client"] ?? "";
 $start = $_GET["start"] ?? "2000-01-01";
@@ -49,4 +49,3 @@ if ($client !== "") {
 
 $stmt->execute();
 echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-?>
