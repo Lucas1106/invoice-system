@@ -1,0 +1,933 @@
+<!doctype html>
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../auth/company_gate.php';
+require_company(COMPANY_LCR); // garante que só quem tem acesso à LCR entra
+?>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#111827">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Invoice – LCR</title>
+  <style>
+    :root{
+      --bg:#020617;
+      --card:#020617;
+      --line:#1f2937;
+      --accent:#22c55e;
+      --accent-soft:rgba(34,197,94,.12);
+      --accent-soft2:rgba(34,197,94,.18);
+      --danger:#f97373;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --radius:16px;
+      --pad:18px;
+      --shadow:0 18px 45px rgba(0,0,0,.65);
+    }
+
+    /* alinhamento das colunas pelo cabeçalho */
+    .table-type{
+      text-align:center !important;
+    }
+    .table-cost{
+      text-align:right !important;
+    }
+
+    /* Fix colunas da tabela (descrição / type / cost) */
+    .sheet table th:nth-child(1),
+    .sheet table td:nth-child(1){
+      width:55%; /* Description */
+    }
+    .sheet table th:nth-child(2),
+    .sheet table td:nth-child(2){
+      width:15%;        /* Type */
+      text-align:center !important;
+      padding-left:0 !important;
+      padding-right:0 !important;
+    }
+    .sheet table th:nth-child(3),
+    .sheet table td:nth-child(3){
+      width:30%;        /* Cost */
+      text-align:right;
+    }
+
+    /* quebra de linha nas infos de pagamento */
+    #p_payment {
+      white-space: pre-line !important;
+    }
+
+    /* largura do select de TYPE no formulário */
+    .typeInput{
+      width:120px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:radial-gradient(circle at top,#1f2937 0,#020617 48%,#000 100%);
+      color:var(--text);
+      min-height:100vh;
+      padding:20px;
+      -webkit-font-smoothing:antialiased;
+    }
+    .wrap{
+      max-width:1180px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    h1,h2,h3{font-weight:600;letter-spacing:.02em;}
+    h2{font-size:18px;margin-bottom:8px;}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px;}
+    input,textarea,select,button{
+      font:inherit;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(15,23,42,.96);
+      color:var(--text);
+      padding:8px 10px;
+      outline:none;
+      width:100%;
+    }
+    input:focus,textarea:focus,select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(34,197,94,.7);
+    }
+    textarea{resize:vertical;min-height:70px;}
+    button{
+      cursor:pointer;
+      border-radius:999px;
+      border:none;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      color:#022c22;
+      font-weight:600;
+      padding:9px 16px;
+      box-shadow:0 10px 25px rgba(34,197,94,.35);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    button.ghost{
+      background:rgba(15,23,42,.92);
+      color:var(--muted);
+      border:1px solid var(--line);
+      box-shadow:none;
+    }
+    button.warn{
+      background:linear-gradient(135deg,#f97373,#ef4444);
+      color:#111827;
+      box-shadow:0 12px 25px rgba(248,113,113,.35);
+    }
+    button:disabled{
+      opacity:.55;
+      cursor:default;
+      box-shadow:none;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr);
+      gap:18px;
+      align-items:flex-start;
+    }
+    .card{
+      background:radial-gradient(circle at top left,rgba(148,163,184,.16) 0,rgba(15,23,42,.98) 44%,#020617 100%);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      border:1px solid rgba(148,163,184,.2);
+      position:relative;
+      overflow:hidden;
+    }
+    .card::before{
+      content:'';
+      position:absolute;
+      inset:-40%;
+      background:radial-gradient(circle at top,rgba(34,197,94,.14),transparent 55%);
+      opacity:.55;
+      pointer-events:none;
+    }
+    .card > *{position:relative;}
+    .pad{padding:var(--pad);}
+    .hr{
+      height:1px;
+      background:linear-gradient(90deg,transparent,rgba(148,163,184,.35),transparent);
+      margin:12px 0;
+    }
+    .row{
+      display:grid;
+      grid-template-columns:1.1fr 1fr;
+      gap:10px;
+      align-items:flex-end;
+    }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+      margin-top:10px;
+    }
+    th,td{
+      text-align:left;
+      padding:8px 6px;
+      border-bottom:1px solid rgba(30,41,59,.75);
+    }
+    th{
+      color:var(--muted);
+      font-weight:500;
+      background:rgba(15,23,42,.9);
+    }
+    tr:last-child td{border-bottom:none;}
+
+    /* ==== NOVA CAIXA DE TOTAL ==== */
+    .totalbox {
+      margin-top: 22px;
+      padding: 22px 26px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #22c55e22, #22c55e11);
+      border: 1px solid #22c55e55;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    .totalbox .label {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: #166534;
+    }
+    .totalbox .amount {
+      font-size: 28px;
+      font-weight: 800;
+      color: #065f46;
+    }
+
+    .sheet{
+      --w:780px;
+      margin:16px auto;
+      background:#fff;
+      color:#111827;
+      padding:24px 28px 28px;
+      border-radius:18px;
+      border:1px solid rgba(148,163,184,.6);
+      box-shadow:0 20px 60px rgba(15,23,42,.7);
+      max-width:var(--w);
+    }
+    .sheet .hdr{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    .logo{
+      width:72px;
+      height:72px;
+      border-radius:20px;
+      object-fit:contain;
+      background:#0f172a;
+      padding:8px;
+      box-shadow:0 0 0 1px rgba(148,163,184,.5);
+    }
+    .brand h1{
+      font-size:22px;
+      margin-bottom:4px;
+    }
+    .brand .sub{
+      font-size:12px;
+      white-space:pre-line;
+      color:#4b5563;
+    }
+    .docid{
+      text-align:right;
+      min-width:150px;
+    }
+    .docid .title{
+      font-size:26px;
+      letter-spacing:.18em;
+      font-weight:700;
+      color:#0f172a;
+    }
+    .docid .num{
+      margin-top:4px;
+      font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:13px;
+      color:#4b5563;
+    }
+    .sec{padding:22px}
+    .sec h3{
+      font-size:14px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      color:#6b7280;
+      margin-bottom:6px;
+    }
+    .sec p{margin:4px 0;}
+    .footnote{
+      margin-top:16px;
+      font-size:11px;
+      color:#6b7280;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:var(--accent-soft);
+      border:1px solid rgba(34,197,94,.7);
+      color:#ffffff;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+    }
+
+    .hidden{display:none;}
+
+    .actionbar{
+      position:fixed; left:0; right:0; bottom:0; z-index:1000;
+      background:rgba(255,255,255,.94);
+      backdrop-filter:saturate(180%) blur(12px);
+      border-top:1px solid rgba(15,23,42,.18);
+      display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)) 12px;
+    }
+    .actionbar .btn{
+      flex:1;
+      justify-content:center;
+      font-size:14px;
+    }
+    .actionbar .btn.ghost{
+      background:rgba(15,23,42,.06);
+      border:1px solid rgba(148,163,184,.5);
+      color:#0f172a;
+    }
+
+    @media (max-width:900px){
+      body{padding:10px;}
+      .wrap{gap:14px;}
+      .grid{grid-template-columns:1fr;}
+      .sheet{
+        --w:100%;
+        margin:10px auto 90px;
+        padding:20px 16px 22px;
+        border-radius:16px;
+      }
+      .card{box-shadow:0 12px 32px rgba(0,0,0,.7);}
+    }
+    @media (max-width:480px){
+      :root{ --pad:14px; }
+      .wrap{
+        max-width:100%;
+        margin:0 auto;
+        padding: max(8px, env(safe-area-inset-top)) 8px calc(88px + env(safe-area-inset-bottom)) 8px;
+      }
+      .grid{ grid-template-columns:1fr; gap:12px; }
+      .pad{ padding:var(--pad); }
+      .row{ grid-template-columns:1fr; gap:8px; }
+      .btn, input, textarea{ width:100%; }
+      .sheet{ --w:100%; border-radius:12px; }
+      .sheet .hdr{ padding:16px; flex-wrap:wrap; }
+      .logo{ width:58px; height:58px; }
+      .brand h1{ font-size:18px; }
+      .docid .title{ font-size:20px; }
+      th,td{ padding:10px 8px; font-size:13.5px; }
+      .totalbox{ padding:14px; }
+      .totalbox .amount{ font-size:20px; }
+    }
+
+    
+@media print {
+  body{ background:#fff!important; margin:0!important; padding:0!important; }
+  .no-print{ display:none!important; }
+  .wrap{ margin:0!important; padding:0!important; }
+  .grid{ display:block!important; }
+  .sheet{
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+    padding:12mm!important;
+    box-shadow:none!important;
+    border:none!important;
+    border-radius:0!important;
+    page-break-inside:avoid!important;
+  }
+  .sheet table{
+    width:100%!important;
+    font-size:11pt!important;
+  }
+  @page{ size:A4; margin:0; }
+}
+
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="grid">
+    <div class="card pad no-print">
+      <h2>Invoice Settings</h2>
+      <div class="row">
+        <div>
+          <label>Service Date</label>
+          <input id="serviceDate" type="date"/>
+        </div>
+        <div>
+          <label>Invoice Counter (server)</label>
+          <input id="counter" type="number" min="1" value="1"/>
+        </div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <div>
+          <button class="btn" id="refreshCounter" style="width:100%">Refresh Counter</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost" id="saveCounter" style="flex:1">Set Counter</button>
+          <button class="btn warn" id="resetCounter" style="width:100%;margin-top:6px">Reset Counter</button>
+        </div>
+      </div>
+
+      <label style="margin-top:12px">Service Address</label>
+      <input id="address" placeholder="Full address"/>
+
+<label style="margin-top:12px">Client (internal)</label>
+
+<div class="clientRow">
+  <input id="clientInternal" placeholder="Client name (not printed)" list="clientList"/>
+<button class="btn ghost addClientBtn" id="addClientBtn">+ Add</button>
+</div>
+
+<datalist id="clientList"></datalist>
+
+
+      <div class="hr"></div>
+      <h2>Company & Payment <button class="btn ghost" id="toggleHeader">Enable Edit</button></h2>
+      <div id="headerFields" class="hidden">
+        <label>Company Name</label>
+        <input id="companyName" value="LC Rodrigues CORP"/>
+        <label>Contact Person</label>
+        <input id="contactPerson" value="Lucas Rodrigues"/>
+        <label>Phone</label>
+        <input id="phone" value="(407) 450-5601"/>
+        <label>Email</label>
+        <input id="email" value="lucas.cesarrodrigues@gmail.com"/>
+        <label>Payment Information</label>
+        <textarea id="paymentInfo">Zelle: (407) 450-5601
+Name: LC Rodrigues CORP
+Payment by credit card or Zelle</textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="saveHeader">Save Header</button>
+          <button class="btn ghost" id="reloadHeader">Reload Header</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <h2>Line Items</h2>
+      <div id="items"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="addItem">+ Add item</button>
+        <button class="btn ghost" id="clearItems">Clear all</button>
+      </div>
+
+      <div class="hr"></div>
+      <div class="row">
+        <div>
+          <label><input id="manualToggle" type="checkbox" style="width:auto;margin-right:6px"/>Override Total Manually</label>
+        </div>
+        <div>
+          <label>Manual Total (USD)</label>
+          <input id="manualTotal" placeholder="Total" disabled/>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="hint">Counter and header saved on server (LCR only).</div>
+    </div>
+
+    <div class="card">
+      <div class="sheet" id="sheet">
+        <div class="hdr">
+          <img class="logo" id="logo" src="logo.png" alt="Logo"/>
+          <div class="brand">
+            <h1 id="p_company">LC Rodrigues CORP</h1>
+            <div class="sub" id="p_contact">Contact: Lucas Rodrigues
+Phone: (407) 450-5601
+Email: lucas.cesarrodrigues@gmail.com</div>
+          </div>
+          <div class="docid">
+            <div class="title">INVOICE</div>
+            <div class="num" id="p_number">#INV-000001</div>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="row" style="grid-template-columns:1fr auto">
+            <div>
+              <h3 style="margin:0 0 6px">Payment Information</h3>
+              <div class="sub" id="p_payment"></div>
+            </div>
+            <div><b>Service Date:</b> <span id="p_date">—</span></div>
+          </div>
+          <div class="hr"></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="table-type">Type</th>
+                <th class="table-cost">Service Cost (USD)</th>
+              </tr>
+            </thead>
+            <tbody id="p_rows"></tbody>
+          </table>
+          <div class="hr"></div>
+          <div><b>Address:</b> <span id="p_address">—</span></div>
+          <div class="totalbox">
+            <div class="label">Invoice Total</div>
+            <div class="amount" id="p_total">$0.00</div>
+          </div>
+          <div class="footnote">Thank you for your business.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="actionbar no-print">
+  <button class="btn" id="finalizeBtn">Finalize & PDF</button>
+  <button class="btn ghost" id="installBtn" style="display:none">Install App</button>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const API_BASE = './';
+  const API_SECRET = 'hG9!zQ2@pL8$wV6#nX3*eR7^cT5&yB1';
+
+  const $ = s => document.querySelector(s);
+  const el = t => document.createElement(t);
+
+  const formatUSD = n => new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(n || 0);
+
+  const readNumber = v => {
+    v = (v ?? '').toString().trim();
+    if (/^\d+,\d{1,2}$/.test(v)) v = v.replace(',', '.');
+    return parseFloat(v) || 0;
+  };
+
+  const pad = (n, s) => String(n).padStart(s, '0');
+  const invNum = n => `#INV-${pad(n || 1, 6)}`;
+
+  async function apiGet(f) {
+    const url = API_BASE + f + (f.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(f);
+    return r.json();
+  }
+  
+  
+  
+  async function loadClients() {
+  try {
+    const r = await apiGet('get_clients.php');
+    const dl = $('#clientList');
+    dl.innerHTML = '';
+    (r.clients || []).forEach(c => {
+      const op = el('option');
+      op.value = c;
+      dl.append(op);
+    });
+  } catch(e) {
+    console.warn("Could not load clients", e);
+  }
+}
+
+async function saveClient(name) {
+  const res = await apiPost('save_client.php', { name });
+  if (res && res.ok) {
+    await loadClients();
+    alert("Client added");
+  } else {
+    alert("Failed to save client");
+  }
+}
+
+  
+  
+  
+  
+
+  async function apiPost(f, b) {
+    try {
+      const r = await fetch(API_BASE + f, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Secret': API_SECRET
+        },
+        body: JSON.stringify(b || {})
+      });
+      const txt = await r.text();
+      try {
+        return JSON.parse(txt);
+      } catch {
+        throw new Error('Server returned non-JSON: ' + txt.slice(0, 200));
+      }
+    } catch (e1) {
+      const form = new URLSearchParams();
+      if (b && typeof b === 'object') {
+        for (const k in b) form.append(k, b[k]);
+      }
+      const r2 = await fetch(API_BASE + f, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Secret': API_SECRET
+        },
+        body: form.toString()
+      });
+      const txt2 = await r2.text();
+      try {
+        return JSON.parse(txt2);
+      } catch {
+        throw new Error('Server returned non-JSON (fallback): ' + txt2.slice(0, 200));
+      }
+    }
+  }
+
+  async function loadHeader() {
+    try {
+      const s = await apiGet('settings.json');
+      $('#companyName').value = s.company || '';
+      $('#contactPerson').value = s.contact || '';
+      $('#phone').value = s.phone || '';
+      $('#email').value = s.email || '';
+      $('#paymentInfo').value = s.payment || '';
+      render();
+    } catch (e) {
+      console.warn('no settings.json', e);
+      render();
+    }
+  }
+
+  async function saveHeader() {
+    const d = {
+      company: $('#companyName').value,
+      contact: $('#contactPerson').value,
+      phone: $('#phone').value,
+      email: $('#email').value,
+      payment: $('#paymentInfo').value
+    };
+    await apiPost('save_settings.php', d);
+    alert('Header saved');
+  }
+
+  async function refreshCounter() {
+    try {
+      const c = await apiGet('counter.json');
+      $('#counter').value = c.counter || 1;
+      render();
+    } catch (e) {
+      alert('No counter.json on server');
+      console.warn(e);
+    }
+  }
+
+  async function setCounter() {
+    const n = parseInt($('#counter').value || '1', 10) || 1;
+    try {
+      await apiPost('save_counter.php', { counter: n });
+      await refreshCounter();
+      alert('Counter saved on server.');
+    } catch (err) {
+      alert('Set counter failed: ' + err.message);
+    }
+  }
+
+  async function incCounter() {
+    try {
+      await apiPost('increment_counter.php', {});
+      await refreshCounter();
+      alert('Counter incremented.');
+    } catch (e) {
+      alert('Increment failed: ' + e.message);
+    }
+  }
+
+  const itemsBox = $('#items');
+
+  function addItem(desc = '', amount = '') {
+    const row = el('div');
+    row.className = 'row itemRow';
+    row.style.alignItems = 'center';
+    row.style.marginBottom = '8px';
+
+    const di = el('input');
+    di.className = 'descInput';
+    di.placeholder = 'Description';
+    di.value = desc;
+
+    const typeSel = el('select');
+    typeSel.className = 'typeInput';
+    ['Labor','Material','Other'].forEach(lbl => {
+      const o = el('option');
+      o.value = lbl.toLowerCase();
+      o.textContent = lbl;
+      typeSel.append(o);
+    });
+    typeSel.addEventListener('change', render);
+
+    const wrap = el('div');
+    wrap.style.display = 'flex';
+    wrap.style.gap = '6px';
+    wrap.style.alignItems = 'center';
+
+    const v = el('input');
+    v.className = 'valInput';
+    v.placeholder = 'Amount';
+    v.value = amount;
+
+    const x = el('button');
+    x.type = 'button';
+    x.className = 'btn ghost';
+    x.textContent = 'Remove';
+    x.onclick = () => {
+      row.remove();
+      render();
+    };
+
+    wrap.append(v, x);
+    row.append(di, typeSel, wrap);
+    itemsBox.append(row);
+
+    di.addEventListener('input', render);
+    v.addEventListener('input', render);
+    render();
+  }
+
+  document.getElementById('addItem').addEventListener('click', () => addItem());
+  document.getElementById('clearItems').addEventListener('click', () => {
+    itemsBox.innerHTML = '';
+    render();
+  });
+
+  function render() {
+    const company = $('#companyName').value || '—';
+    const contactPerson = $('#contactPerson').value || '';
+    const phone = $('#phone').value || '';
+    const email = $('#email').value || '';
+
+    const contactLines = [
+      company,
+      contactPerson ? 'Contact: ' + contactPerson : '',
+      phone ? 'Phone: ' + phone : '',
+      email ? 'Email: ' + email : ''
+    ].filter(Boolean).join('\n');
+
+    $('#p_company').textContent = company;
+    $('#p_contact').textContent = contactLines;
+
+    const rawPayment = $('#paymentInfo').value || '';
+    const paymentFixed = rawPayment.replace(/\\n/g, '\n');
+    $('#p_payment').textContent = paymentFixed;
+
+    const d = $('#serviceDate').value;
+    $('#p_date').textContent = d ? new Date(d + 'T00:00').toLocaleDateString('en-US') : '—';
+
+    $('#p_address').textContent = $('#address').value || '—';
+
+    const tbody = $('#p_rows');
+    tbody.innerHTML = '';
+    let auto = 0;
+
+    itemsBox.querySelectorAll('.itemRow').forEach(r => {
+      const desc = r.querySelector('.descInput')?.value || '—';
+      const val = readNumber(r.querySelector('.valInput')?.value || '');
+      auto += val;
+
+      const tr = el('tr');
+
+      const tdDesc = el('td');
+      tdDesc.textContent = desc;
+
+      const tdType = el('td');
+      const typeSelect = r.querySelector('.typeInput');
+      let typeText = '';
+      if (typeSelect) {
+        const opt = typeSelect.options[typeSelect.selectedIndex];
+        typeText = opt ? opt.textContent : (typeSelect.value || '');
+      }
+      tdType.textContent = typeText;
+
+      const tdCost = el('td');
+      tdCost.textContent = formatUSD(val);
+
+      tr.append(tdDesc, tdType, tdCost);
+      tbody.append(tr);
+    });
+
+    const manual = $('#manualToggle').checked;
+    const manualVal = readNumber($('#manualTotal').value);
+    $('#p_total').textContent = formatUSD(manual ? manualVal : auto);
+
+    const n = parseInt($('#counter').value || '1', 10) || 1;
+    $('#p_number').textContent = invNum(n);
+  }
+
+  document.getElementById('manualToggle').addEventListener('change', () => {
+    $('#manualTotal').disabled = !$('#manualToggle').checked;
+    render();
+  });
+
+  [
+    'serviceDate',
+    'address',
+    'clientInternal',
+    'manualTotal',
+    'companyName',
+    'contactPerson',
+    'phone',
+    'email',
+    'paymentInfo',
+    'counter'
+  ].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.addEventListener('input', render);
+  });
+
+  document.getElementById('toggleHeader').addEventListener('click', () => {
+    const box = document.getElementById('headerFields');
+    const hidden = box.classList.contains('hidden');
+    if (hidden) {
+      box.classList.remove('hidden');
+      document.getElementById('toggleHeader').textContent = 'Disable Edit';
+    } else {
+      box.classList.add('hidden');
+      document.getElementById('toggleHeader').textContent = 'Enable Edit';
+    }
+  });
+
+  document.getElementById('saveHeader').addEventListener('click', saveHeader);
+  document.getElementById('reloadHeader').addEventListener('click', loadHeader);
+  document.getElementById('refreshCounter').addEventListener('click', refreshCounter);
+  document.getElementById('saveCounter').addEventListener('click', setCounter);
+  document.getElementById('resetCounter').addEventListener('click', () => {
+    if (confirm('Reset to 1?')) {
+      $('#counter').value = 1;
+      setCounter();
+    }
+  });
+
+  function buildInvoicePayload() {
+    const d = $('#serviceDate').value || null;
+    const address = $('#address').value || '';
+    const clientInternal = (document.getElementById('clientInternal')?.value || '').trim();
+    const n = parseInt($('#counter').value || '1', 10) || 1;
+
+    const totalText = $('#p_total').textContent || '';
+    const numeric = totalText.replace(/[^0-9,.-]/g, '').replace(',', '.');
+    const total = parseFloat(numeric) || 0;
+
+    const items = [];
+    itemsBox.querySelectorAll('.itemRow').forEach(r => {
+      const desc = r.querySelector('.descInput')?.value || '';
+      const val = readNumber(r.querySelector('.valInput')?.value || '');
+      if (desc || val) {
+        items.push({ description: desc, amount: val });
+      }
+    });
+
+    return {
+      service_date: d || null,
+      address,
+      client_internal: clientInternal || null,
+      invoice_counter: n,
+      invoice_number: invNum(n),
+      total,
+      items
+    };
+  }
+
+  async function saveInvoiceHistory() {
+    try {
+      const payload = buildInvoicePayload();
+      const res = await apiPost('save_invoice.php', payload);
+      if (!res || !res.ok) {
+        throw new Error(res && res.error ? res.error : 'unknown_error');
+      }
+      return res;
+    } catch (err) {
+      console.error('Failed to save invoice history', err);
+      alert('Invoice generated, but history could not be stored on the server: ' + err.message);
+      return null;
+    }
+  }
+
+  document.getElementById('finalizeBtn').addEventListener('click', async () => {
+    await saveInvoiceHistory();
+    window.print();
+    setTimeout(() => {
+      if (confirm('Mark issued & increment?')) {
+        incCounter();
+      }
+    }, 300);
+  });
+  
+  
+  document.getElementById('addClientBtn').addEventListener('click', async () => {
+  const name = ($('#clientInternal').value || '').trim();
+  if (!name) {
+    alert("Enter a client name first.");
+    return;
+  }
+  await saveClient(name);
+});
+
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(console.warn);
+  }
+
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.style.display = 'inline-block';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    if (installBtn) installBtn.style.display = 'none';
+  });
+
+  loadHeader();
+  refreshCounter();
+  render();
+  loadClients();
+
+})();
+</script>
+</body>
+</html>
