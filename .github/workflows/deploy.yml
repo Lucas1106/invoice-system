@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0   # OBRIGATÓRIO para evitar erro no git
 
       - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v3.1.1
+uses: SamKirkland/FTP-Deploy-Action@4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
