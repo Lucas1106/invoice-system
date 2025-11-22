@@ -18,11 +18,13 @@ jobs:
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@4.3.3
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
+          server: ftp.meaclean.com
+          username: github@meaclean.com
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /invoice/   # <-- CORRIGIDO
+          port: 21
+          protocol: ftp
           local-dir: ./
+          server-dir: /       # <-- ESSENCIAL — raiz já é "invoice"
           exclude: |
             **/.git*
             **/.github*
