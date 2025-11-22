@@ -10,11 +10,9 @@ $client = $_GET["client"] ?? "";
 $start  = $_GET["start"] ?? "2000-01-01";
 $end    = $_GET["end"]   ?? "2100-01-01";
 
-/*
-    MariaDB FIX – NÃO usar JSON_TABLE
-    Vamos extrair Material e Labor manualmente
+/* 
+   BUSCA SIMPLES — SEM JSON_TABLE, SEM SUBSELECTS
 */
-
 $sql = "
 SELECT
     id,
@@ -24,34 +22,54 @@ SELECT
     address,
     service_date,
     total,
-
-    /* MATERIAL */
-    (
-        SELECT COALESCE(SUM(JSON_EXTRACT(j.value, '$.cost')),0)
-        FROM JSON_TABLE_MARIADB(items_json) AS j
-        WHERE JSON_EXTRACT(j.value, '$.type') = '\"Material\"'
-    ) AS material_cost,
-
-    /* LABOR */
-    (
-        SELECT COALESCE(SUM(JSON_EXTRACT(j.value, '$.cost')),0)
-        FROM JSON_TABLE_MARIADB(items_json) AS j
-        WHERE JSON_EXTRACT(j.value, '$.type') = '\"Labor\"'
-    ) AS labor_cost
-
+    items_json
 FROM invoices_lcr
 WHERE service_date BETWEEN :start AND :end
 ";
 
-/*
-    CRIAÇÃO DE UMA FUNÇÃO VIRTUAL PARA SIMULAR JSON_TABLE
-    (funciona em MariaDB)
-*/
+if ($client !== "") {
+    $sql .= " AND client_internal = :client";
+}
 
-$sql = str_replace(
-    "JSON_TABLE_MARIADB(items_json)",
-    "(SELECT JSON_EXTRACT(items_json, CONCAT('$[', numbers.n, ']')) AS value
-      FROM (
-            SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION
-            SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION
-            SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION
+$stmt = $pdo->prepare($sql);
+$stmt->bindValue(":start", $start);
+$stmt->bindValue(":end", $end);
+
+if ($client !== "") {
+    $stmt->bindValue(":client", $client);
+}
+
+$stmt->execute();
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+/*
+    AGORA PROCESSAMOS MATERIAL E LABOR EM PHP
+*/
+foreach ($rows as &$r) {
+
+    $items = json_decode($r["items_json"] ?? "[]", true);
+
+    $mat = 0;
+    $lab = 0;
+
+    if (is_array($items)) {
+        foreach ($items as $item) {
+
+            $type = $item["type"] ?? "";
+            $cost = floatval($item["cost"] ?? 0);
+
+            if ($type === "Material") {
+                $mat += $cost;
+            }
+            if ($type === "Labor") {
+                $lab += $cost;
+            }
+        }
+    }
+
+    $r["material_cost"] = $mat;
+    $r["labor_cost"]    = $lab;
+}
+
+echo json_encode($rows);
+?>
