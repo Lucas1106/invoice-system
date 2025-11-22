@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 declare(strict_types=1);
 
 // caminho correto conforme você confirmou:
-require "../../auth/db.php";
+require /auth/db.php";
 
 $client = $_GET["client"] ?? "";
 $start  = $_GET["start"] ?? "2000-01-01";
