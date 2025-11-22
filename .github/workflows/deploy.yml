@@ -18,13 +18,13 @@ jobs:
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@4.3.3
         with:
-          server: ftp.meaclean.com
+          server: 186.234.81.9
           username: github@meaclean.com
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           protocol: ftp
           local-dir: ./
-          server-dir: /       # <-- ESSENCIAL — raiz já é "invoice"
+          server-dir: /        # raiz = pasta invoice no UOLHost
           exclude: |
             **/.git*
             **/.github*
