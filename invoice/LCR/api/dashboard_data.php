@@ -4,15 +4,14 @@ ini_set("display_startup_errors", 1);
 error_reporting(E_ALL);
 
 declare(strict_types=1);
-require "../db.php";
+
+// caminho correto conforme você confirmou:
+require "../../auth/db.php";
 
 $client = $_GET["client"] ?? "";
 $start  = $_GET["start"] ?? "2000-01-01";
 $end    = $_GET["end"]   ?? "2100-01-01";
 
-/* 
-   BUSCA SIMPLES — SEM JSON_TABLE, SEM SUBSELECTS
-*/
 $sql = "
 SELECT
     id,
@@ -42,34 +41,27 @@ if ($client !== "") {
 $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-/*
-    AGORA PROCESSAMOS MATERIAL E LABOR EM PHP
-*/
-foreach ($rows as &$r) {
+// PROCESSAR MATERIAL E LABOR
+foreach ($rows as &$row) {
 
-    $items = json_decode($r["items_json"] ?? "[]", true);
+    $items = json_decode($row["items_json"] ?? "[]", true);
 
-    $mat = 0;
-    $lab = 0;
+    $material = 0;
+    $labor    = 0;
 
     if (is_array($items)) {
-        foreach ($items as $item) {
+        foreach ($items as $i) {
 
-            $type = $item["type"] ?? "";
-            $cost = floatval($item["cost"] ?? 0);
+            $type = $i["type"] ?? "";
+            $cost = floatval($i["cost"] ?? 0);
 
-            if ($type === "Material") {
-                $mat += $cost;
-            }
-            if ($type === "Labor") {
-                $lab += $cost;
-            }
+            if ($type === "Material") $material += $cost;
+            if ($type === "Labor")    $labor    += $cost;
         }
     }
 
-    $r["material_cost"] = $mat;
-    $r["labor_cost"]    = $lab;
+    $row["material_cost"] = $material;
+    $row["labor_cost"]    = $labor;
 }
 
 echo json_encode($rows);
-?>
