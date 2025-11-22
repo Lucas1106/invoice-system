@@ -10,7 +10,7 @@ require "../auth/db.php";
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- Mesma folha de estilo do invoice -->
-<link rel="stylesheet" href="/invoice/LCR/style.css">
+<link rel="stylesheet" href="/LCR/style.css">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/phosphor-icons"></script>
@@ -221,7 +221,7 @@ async function loadData() {
     const start = document.getElementById("start_date").value;
     const end   = document.getElementById("end_date").value;
 
-const url = `/invoice/LCR/api/dashboard_data.php?client=${client}&start=${start}&end=${end}`;
+const url = `/LCR/api/dashboard_data.php?client=${client}&start=${start}&end=${end}`;
     const data = await (await fetch(url)).json();
 
     fillTable(data);
