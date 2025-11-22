@@ -1,0 +1,27 @@
+# Composer
+/vendor/
+
+# Laravel / Symfony / Frameworks
+/storage/
+/bootstrap/cache/
+/var/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Cache
+cache/
+*.cache
+
+# IDE files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
