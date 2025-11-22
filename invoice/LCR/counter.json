@@ -1,3 +1,39 @@
-{
-    "counter": 78
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../auth/db.php';
+
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+    $pdo = db();
+
+    $stmt = $pdo->query(
+        "SELECT counter, updated_at
+         FROM lcr_counters
+         WHERE id = 1
+         LIMIT 1"
+    );
+    $row = $stmt->fetch();
+
+    if (!$row) {
+        // Se ainda não existir, consideramos 0
+        echo json_encode([
+            'counter'    => 0,
+            'updated_at' => null,
+        ]);
+        exit;
+    }
+
+    echo json_encode([
+        'counter'    => (int)$row['counter'],
+        'updated_at' => $row['updated_at'],
+    ]);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error'  => 'db_error',
+        'detail' => $e->getMessage(),
+    ]);
 }

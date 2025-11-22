@@ -7,19 +7,20 @@ require_company(COMPANY_LCR);
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  http_response_code(405);
-  echo json_encode(['error'=>'method_not_allowed']); exit;
+    http_response_code(405);
+    echo json_encode(['error' => 'method_not_allowed']);
+    exit;
 }
 
 // Lê JSON ou x-www-form-urlencoded
 $ctype = strtolower($_SERVER['CONTENT_TYPE'] ?? '');
-$data = [];
+$data  = [];
+
 if (strpos($ctype, 'application/json') !== false) {
-  $raw = file_get_contents('php://input');
-  $data = json_decode($raw, true);
-  if (!is_array($data)) { http_response_code(400); echo json_encode(['error'=>'invalid_json']); exit; }
+    $raw  = file_get_contents('php://input');
+    $data = json_decode($raw, true) ?? [];
 } else {
-  $data = $_POST ?: [];
+    $data = $_POST;
 }
 
 $company = trim((string)($data['company'] ?? ''));
@@ -28,16 +29,37 @@ $phone   = trim((string)($data['phone'] ?? ''));
 $email   = trim((string)($data['email'] ?? ''));
 $payment = trim((string)($data['payment'] ?? ''));
 
-$file = __DIR__ . '/settings.json';
-$tmp  = $file . '.tmp';
-$out  = json_encode([
-  'company'=>$company, 'contact'=>$contact, 'phone'=>$phone,
-  'email'=>$email, 'payment'=>$payment, 'updated_at'=>date('c')
-], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
+if ($company === '' || $contact === '' || $phone === '' || $email === '' || $payment === '') {
+    http_response_code(400);
+    echo json_encode(['error' => 'missing_fields']);
+    exit;
+}
 
-$fp = fopen($tmp, 'c+'); if(!$fp){ http_response_code(500); echo json_encode(['error'=>'temp_open_failed']); exit; }
-if(!flock($fp, LOCK_EX)){ fclose($fp); http_response_code(500); echo json_encode(['error'=>'lock_failed']); exit; }
-ftruncate($fp,0); fwrite($fp,$out); fflush($fp); flock($fp,LOCK_UN); fclose($fp);
+try {
+    $pdo = db();
 
-if(!@rename($tmp,$file)){ @unlink($tmp); http_response_code(500); echo json_encode(['error'=>'rename_failed']); exit; }
-echo json_encode(['ok'=>true]);
+    // id fixo = 1 para LCR
+    $stmt = $pdo->prepare(
+        "REPLACE INTO lcr_settings
+         (id, company, contact, phone, email, payment, updated_at)
+         VALUES
+         (1, :company, :contact, :phone, :email, :payment, NOW())"
+    );
+
+    $stmt->execute([
+        ':company' => $company,
+        ':contact' => $contact,
+        ':phone'   => $phone,
+        ':email'   => $email,
+        ':payment' => $payment,
+    ]);
+
+    echo json_encode(['ok' => true]);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error'  => 'db_error',
+        'detail' => $e->getMessage(),
+    ]);
+}

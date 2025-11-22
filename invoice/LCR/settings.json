@@ -1,8 +1,41 @@
-{
-    "company": "LC Rodrigues CORP",
-    "contact": "Lucas Rodrigues",
-    "phone": "(407) 450-5601",
-    "email": "lucas.cesarrodrigues@gmail.com",
-    "payment": "Zelle: (407) 450-5601\nName: LC Rodrigues CORP\nPayment by credit card or Zelle",
-    "updated_at": "2025-11-21T23:12:03+00:00"
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../auth/company_gate.php';
+require_company(COMPANY_LCR); // garante que só LCR acessa
+
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+    // db() vem de auth/db.php via auth.php → company_gate.php
+    $pdo = db();
+
+    $stmt = $pdo->query(
+        "SELECT company, contact, phone, email, payment, updated_at
+         FROM lcr_settings
+         WHERE id = 1
+         LIMIT 1"
+    );
+    $row = $stmt->fetch();
+
+    if (!$row) {
+        http_response_code(404);
+        echo json_encode(['error' => 'settings_not_found']);
+        exit;
+    }
+
+    echo json_encode([
+        'company'    => $row['company'],
+        'contact'    => $row['contact'],
+        'phone'      => $row['phone'],
+        'email'      => $row['email'],
+        'payment'    => $row['payment'],
+        'updated_at' => $row['updated_at'],
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error'  => 'db_error',
+        'detail' => $e->getMessage(),
+    ]);
 }
