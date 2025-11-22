@@ -7,65 +7,147 @@ require "../auth/db.php";
 <head>
 <meta charset="UTF-8">
 <title>LCR – Financial Dashboard</title>
-<link rel="stylesheet" href="/invoice/LCR/style.css"> <!-- usa o mesmo layout -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Mesma folha de estilo do invoice -->
+<link rel="stylesheet" href="/LCR/style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/phosphor-icons"></script>
 
 <style>
-/* Mesmo estilo da página de invoice */
-.dashboard-container {
+
+body {
+    margin: 0;
+    background: #0d0d0d;
+    font-family: 'Inter', sans-serif;
     color: white;
-    padding: 25px;
 }
 
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-    margin-bottom: 30px;
+/* CONTAINER PRINCIPAL */
+.dashboard-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+    padding: 15px;
 }
 
-.card {
-    background: #1c1c1c;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0px 0px 8px #000;
+/* CABEÇALHO */
+.header-title {
+    font-size: 26px;
+    font-weight: 600;
+    margin-top: 5px;
+    padding-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.card h3 {
-    margin-bottom: 6px;
+.header-title i {
+    font-size: 30px;
     color: #4cc2ff;
 }
 
-.filter-area {
-    margin-bottom: 25px;
-    background: #151515;
-    padding: 15px;
-    border-radius: 12px;
+/* FILTROS */
+.filter-box {
+    background: #141414;
+    padding: 12px;
+    margin-top: 10px;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    box-shadow: 0 0 10px #000;
 }
 
-.filter-area select, .filter-area input {
-    background: #222;
-    color: white;
-    padding: 8px;
-    border-radius: 6px;
+.filter-box label {
+    font-size: 13px;
+}
+
+.filter-box select,
+.filter-box input {
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    background: #1f1f1f;
     border: none;
-    margin-right: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    color: white;
 }
 
-.table-area {
-    margin-top: 30px;
+.apply-btn {
+    width: 100%;
+    background: #4cc2ff;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    color: black;
+    font-weight: 600;
+    font-size: 15px;
 }
 
+/* GRID DE CARDS */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.stat-card {
+    background: rgba(255,255,255,0.06);
+    padding: 18px;
+    border-radius: 16px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+}
+
+.stat-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4cc2ff;
+    margin-bottom: 5px;
+}
+
+.stat-card span {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+/* GRÁFICOS */
+.chart-box {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 16px;
+    margin-top: 25px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+}
+
+/* TABELA */
 table {
     width: 100%;
-    background: #121212;
+    background: #111;
     border-collapse: collapse;
-    color: white;
+    margin-top: 25px;
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 13px;
 }
 
-table th, table td {
+th {
+    background: #1b1b1b;
     padding: 12px;
-    border-bottom: 1px solid #333;
+}
+
+td {
+    padding: 10px;
+    border-bottom: 1px solid #222;
+}
+
+@media(max-width: 600px){
+    th:nth-child(4), td:nth-child(4){
+        display:none;
+    }
 }
 
 </style>
@@ -73,62 +155,61 @@ table th, table td {
 
 <body>
 
-<div class="dashboard-container">
+<div class="dashboard-wrapper">
 
-    <h1 style="margin-bottom:20px;">📊 LCR – Financial Dashboard</h1>
+    <div class="header-title">
+        <i class="ph-chart-line-up"></i> LCR – Financial Dashboard
+    </div>
 
     <!-- FILTROS -->
-    <div class="filter-area">
+    <div class="filter-box">
         <label>Client:</label>
         <select id="client_filter"></select>
 
-        <label>Start:</label>
+        <label>Start date:</label>
         <input type="date" id="start_date">
 
-        <label>End:</label>
+        <label>End date:</label>
         <input type="date" id="end_date">
 
-        <button onclick="loadData()" 
-            style="padding:8px 18px; background:#4cc2ff; color:black; border:none; border-radius:6px;">
-            Apply
-        </button>
+        <button class="apply-btn" onclick="loadData()">Apply</button>
     </div>
 
-    <!-- RESUMO -->
+    <!-- CARDS -->
     <div class="card-grid">
-        <div class="card"><h3>Weekly Revenue</h3><span id="week_rev">$0.00</span></div>
-        <div class="card"><h3>Weekly Material</h3><span id="week_mat">$0.00</span></div>
-        <div class="card"><h3>Weekly Profit</h3><span id="week_profit">$0.00</span></div>
+        <div class="stat-card"><h3>Weekly Revenue</h3><span id="week_rev">$0.00</span></div>
+        <div class="stat-card"><h3>Weekly Material</h3><span id="week_mat">$0.00</span></div>
+        <div class="stat-card"><h3>Weekly Profit</h3><span id="week_profit">$0.00</span></div>
 
-        <div class="card"><h3>Monthly Revenue</h3><span id="month_rev">$0.00</span></div>
-        <div class="card"><h3>Monthly Material</h3><span id="month_mat">$0.00</span></div>
-        <div class="card"><h3>Monthly Profit</h3><span id="month_profit">$0.00</span></div>
+        <div class="stat-card"><h3>Monthly Revenue</h3><span id="month_rev">$0.00</span></div>
+        <div class="stat-card"><h3>Monthly Material</h3><span id="month_mat">$0.00</span></div>
+        <div class="stat-card"><h3>Monthly Profit</h3><span id="month_profit">$0.00</span></div>
     </div>
 
-    <!-- GRÁFICOS -->
-    <div style="display:flex; gap:20px; margin-top:25px;">
-        <div style="width:50%;"><canvas id="monthChart"></canvas></div>
-        <div style="width:50%;"><canvas id="typeChart"></canvas></div>
+    <!-- GRÁFICO -->
+    <div class="chart-box">
+        <canvas id="monthChart"></canvas>
+    </div>
+
+    <div class="chart-box">
+        <canvas id="typeChart"></canvas>
     </div>
 
     <!-- TABELA -->
-    <div class="table-area">
-        <h2>Invoices List</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th>Client</th>
-                    <th>Address</th>
-                    <th>Total</th>
-                    <th>Material</th>
-                    <th>Labor</th>
-                </tr>
-            </thead>
-            <tbody id="invoice_table"></tbody>
-        </table>
-    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Address</th>
+                <th>Total</th>
+                <th>Material</th>
+                <th>Labor</th>
+            </tr>
+        </thead>
+        <tbody id="invoice_table"></tbody>
+    </table>
 
 </div>
 
@@ -140,8 +221,7 @@ async function loadData() {
     const start = document.getElementById("start_date").value;
     const end   = document.getElementById("end_date").value;
 
-    const url = `/invoice/LCR/api/dashboard_data.php?client=${client}&start=${start}&end=${end}`;
-
+    const url = `/LCR/api/dashboard_data.php?client=${client}&start=${start}&end=${end}`;
     const data = await (await fetch(url)).json();
 
     fillTable(data);
@@ -171,8 +251,8 @@ function calculateTotals(data) {
     const week = getWeekNumber(today);
     const month = today.getMonth() + 1;
 
-    let weekRev=0, weekMat=0, weekLab=0;
-    let monRev=0, monMat=0, monLab=0;
+    let weekRev=0, weekMat=0;
+    let monRev=0, monMat=0;
 
     data.forEach(row => {
         const d = new Date(row.service_date);
@@ -182,12 +262,10 @@ function calculateTotals(data) {
         if (rowWeek === week) {
             weekRev += parseFloat(row.total);
             weekMat += parseFloat(row.material_cost);
-            weekLab += parseFloat(row.labor_cost);
         }
         if (rowMonth === month) {
             monRev += parseFloat(row.total);
             monMat += parseFloat(row.material_cost);
-            monLab += parseFloat(row.labor_cost);
         }
     });
 
@@ -215,7 +293,6 @@ function renderCharts(data) {
     data.forEach(row => {
         const m = row.service_date.substring(0,7);
         monthTotals[m] = (monthTotals[m] || 0) + parseFloat(row.total);
-
         matTotal += parseFloat(row.material_cost);
         labTotal += parseFloat(row.labor_cost);
     });
@@ -228,7 +305,10 @@ function renderCharts(data) {
 
     monthChart = new Chart(document.getElementById("monthChart"), {
         type: "bar",
-        data: { labels, datasets: [{ label: "Revenue", data: values, backgroundColor:"#4cc2ff" }] }
+        data: {
+            labels,
+            datasets: [{ label: "Revenue", data: values, backgroundColor:"#4cc2ff" }]
+        }
     });
 
     typeChart = new Chart(document.getElementById("typeChart"), {
