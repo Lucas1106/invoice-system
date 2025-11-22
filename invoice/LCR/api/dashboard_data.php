@@ -1,6 +1,11 @@
+
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 declare(strict_types=1);
-require "../../auth/db.php";   // CAMINHO CORRETO!!!!!!
+require "../../auth/db.php"; 
 
 $client = $_GET["client"] ?? "";
 $start = $_GET["start"] ?? "2000-01-01";
