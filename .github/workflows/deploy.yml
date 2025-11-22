@@ -2,7 +2,8 @@ name: Deploy para UOLHost via FTP
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -12,22 +13,16 @@ jobs:
       - name: Fazer checkout do código
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0   # OBRIGATÓRIO para evitar erro no git
+          fetch-depth: 0
 
       - name: Deploy via FTP
-uses: SamKirkland/FTP-Deploy-Action@4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-
-          # Pasta local a enviar
-          local-dir: "./"
-
-          # Pasta dentro do UOLHost
-          server-dir: "/invoice"
-
-          # Desativa comparação com git se quiser evitar erros
+          server-dir: /invoice
+          local-dir: ./
           exclude: |
             **/.git*
             **/.github*
