@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require "../../../db.php";
+require "../../auth/db.php";
 
 $client = $_GET["client"] ?? "";
 $start = $_GET["start"] ?? "2000-01-01";
