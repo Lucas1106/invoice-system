@@ -21,7 +21,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /invoice
+          server-dir: /invoice/   # <-- CORRIGIDO
           local-dir: ./
           exclude: |
             **/.git*
